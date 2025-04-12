@@ -2,5 +2,5 @@
     "data_source": "CSV",
     "csv_path": "../data/BTCUSD_H4_historical_data.csv",
     "api_endpoint": "https://www.alphavantage.co/query?function=DIGITAL_CURRENCY_DAILY&symbol=BTC&market=USD",
-    "api_key": "4YSOUK9NBHVW5UHZ"
+    "api_key": "***********"
 }
