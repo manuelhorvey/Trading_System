@@ -1,4 +1,5 @@
 #include "OrderBlock.h"
+#include <algorithm>
 
 // Detect strong bullish impulse
 bool isStrongBullishImpulse(const Candle& c1, const Candle& c2) {
@@ -151,4 +152,80 @@ std::vector<ConfirmedOB> filterOrderBlocksWithStructure(
     }
 
     return confirmedOBs;
+}
+
+// ==============================
+// OrderBlock class methods
+// ==============================
+
+std::string OrderBlock::getStrengthString() const {
+    switch (strength) {
+        case OBStrength::Valid: return "Valid";
+        case OBStrength::Weak: return "Weak";
+        case OBStrength::Invalidated: return "Invalidated";
+    }
+    return "Unknown";
+}
+
+// Update strength with structure events AND current candle close price check
+void OrderBlock::updateStrength(const std::vector<StructureEvent>& events, double currentClose, bool isBullishOB) {
+    strength = OBStrength::Valid;
+
+    // First check candle close invalidation
+    if (isBullishOB) {
+        if (currentClose < bottom) {
+            strength = OBStrength::Invalidated;
+            return;
+        }
+    } else { // Bearish OB
+        if (currentClose > top) {
+            strength = OBStrength::Invalidated;
+            return;
+        }
+    }
+
+    // Then check structural event invalidation or weakness
+    for (const auto& event : events) {
+        if (event.date <= date) continue;
+
+        if (isBullishOB) {
+            switch (event.type) {
+                case StructureEventType::BOS_Bearish:
+                case StructureEventType::CHoCH_Bearish:
+                    if (event.price < bottom) {
+                        strength = OBStrength::Invalidated;
+                        return;
+                    } else if (event.price < top) {
+                        strength = OBStrength::Weak;
+                    }
+                    break;
+
+                case StructureEventType::TrendlineBreak:
+                    strength = OBStrength::Weak;
+                    break;
+
+                default:
+                    break;
+            }
+        } else { // Bearish OB
+            switch (event.type) {
+                case StructureEventType::BOS_Bullish:
+                case StructureEventType::CHoCH_Bullish:
+                    if (event.price > top) {
+                        strength = OBStrength::Invalidated;
+                        return;
+                    } else if (event.price > bottom) {
+                        strength = OBStrength::Weak;
+                    }
+                    break;
+
+                case StructureEventType::TrendlineBreak:
+                    strength = OBStrength::Weak;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
 }

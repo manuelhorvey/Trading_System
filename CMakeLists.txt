@@ -17,14 +17,21 @@ include_directories(include)
 # Add the executable
 add_executable(TradingSystem
     src/main.cpp
+    src/DataReader.cpp
     src/OrderBlock.cpp
     src/MarketStructure.cpp
     src/Backtest.cpp
     src/Strategy.cpp
     src/Utils.cpp
-    src/DataReader.cpp
     src/Order.cpp
+    # Remove these lines until files are created
+    src/Config.cpp
+    src/OrderBlockAnalyzer.cpp
+    src/TradingUtils.cpp
+    src/StructureUtils.cpp
+    src/LoggingUtils.cpp
 )
+
 
 # Link the CURL library
 target_link_libraries(TradingSystem CURL::libcurl)

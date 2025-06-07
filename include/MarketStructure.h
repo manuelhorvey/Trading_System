@@ -5,38 +5,26 @@
 #include <string>
 #include "Candle.h"
 
-// Enum for structure type
 enum class StructureType {
     SwingHigh,
     SwingLow,
-    BreakOfStructure,
-    ChangeOfCharacter,
-    CHoCH,
     BOS,
+    CHoCH,
+    TrendlineBreak,
+    None
 };
 
-// Structure Point
 struct StructurePoint {
     std::string date;
     double price;
     StructureType type;
-    size_t index; // index in the candles vector
+    size_t index;
 };
 
-// Detect swing highs and lows
 std::vector<StructurePoint> detectSwingPoints(const std::vector<Candle>& candles, int lookback = 2);
-
-// Detect break of structure
-std::vector<StructurePoint> detectBOS(
-    const std::vector<Candle>& candles,
-    const std::vector<StructurePoint>& swingPoints
-);
-
-// Detect Change of Charater
-std::vector<StructurePoint> detectCHoCH(
-    const std::vector<Candle>& candles,
-    const std::vector<StructurePoint>& swingPoints
-);
-
+std::vector<StructurePoint> detectBOS(const std::vector<Candle>& candles, const std::vector<StructurePoint>& swingPoints);
+std::vector<StructurePoint> detectCHoCH(const std::vector<Candle>& candles, const std::vector<StructurePoint>& swingPoints, double retraceThreshold = 0.02);
+std::vector<StructurePoint> detectTrendlineBreak(const std::vector<Candle>& candles, const std::vector<StructurePoint>& swingPoints, double threshold = 0.02);
+std::vector<StructurePoint> detectStructure(const std::vector<Candle>& candles, StructureType type, double retraceThreshold = 0.02);
 
 #endif // MARKETSTRUCTURE_H

@@ -22,6 +22,21 @@ enum class ConfirmationType {
     BOS
 };
 
+enum class OBStrength {
+    Valid,
+    Weak,
+    Invalidated
+};
+
+enum class StructureEventType {
+    BOS_Bearish,
+    BOS_Bullish,
+    CHoCH_Bullish,
+    CHoCH_Bearish,
+    TrendlineBreak,
+    None
+};
+
 // ========================
 // STRUCTURES
 // ========================
@@ -41,32 +56,65 @@ struct ConfirmedOB {
     std::string confirmationDate;   // Date when confirmation occurred
 };
 
+struct StructureEvent {
+    StructureEventType type;
+    std::string date;
+    double price;
+
+    StructureEvent(StructureEventType t = StructureEventType::None, 
+                   const std::string& d = "", 
+                   double p = 0.0) : type(t), date(d), price(p) {}
+};
+
 // ========================
-// Order Block Logic
+// Order Block Class for confluence & strength
 // ========================
 
-// Check if the current and previous candles form a strong bullish impulse
+class OrderBlock {
+public:
+    std::string date;
+    double top;
+    double bottom;
+    double entryPrice;
+    OBType type;
+    OBStrength strength;
+
+    OrderBlock(const std::string& d, double t, double b, double e, OBType obType)
+        : date(d), top(t), bottom(b), entryPrice(e), type(obType), strength(OBStrength::Valid) {}
+
+    // Update OB strength based on structure events after OB date
+    void updateStrength(const std::vector<StructureEvent>& events, double currentClose, bool isBullishOB);
+
+    // Helper for logging strength as string
+    std::string getStrengthString() const;
+};
+
+// ========================
+// Order Block Logic Functions
+// ========================
+
+// Detect strong bullish impulse between two candles
 bool isStrongBullishImpulse(const Candle& prev, const Candle& curr);
 
-// Get bullish order block zone from a candle
+// Return bullish order block zone based on a candle
 OBZone getBullishOBZone(const Candle& ob);
 
-// Detect bullish order blocks from candles
+// Find bullish order blocks in a candle series
 std::vector<OBZone> findBullishOrderBlocks(const std::vector<Candle>& candles);
 
-// Check if the current and previous candles form a strong bearish impulse
+// Detect strong bearish impulse between two candles
 bool isStrongBearishImpulse(const Candle& prev, const Candle& curr);
 
-// Get bearish order block zone from a candle
+// Return bearish order block zone based on a candle
 OBZone getBearishOBZone(const Candle& ob);
 
-// Detect bearish order blocks from candles
+// Find bearish order blocks in a candle series
 std::vector<OBZone> findBearishOrderBlocks(const std::vector<Candle>& candles);
 
-// Detect both bullish and bearish order blocks in the given candle vector
+// Detect both bullish and bearish order blocks
 std::vector<std::pair<OBZone, std::string>> detectOrderBlocks(const std::vector<Candle>& candles);
 
-// Filter and confirm OBs based on CHoCH and BOS structure points
+// Filter order blocks using CHoCH and BOS confirmations from structure points
 std::vector<ConfirmedOB> filterOrderBlocksWithStructure(
     const std::vector<Candle>& candles,
     const std::vector<std::pair<OBZone, std::string>>& rawOBs,
