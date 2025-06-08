@@ -6,7 +6,6 @@
 #include <iomanip>
 #include <ctime>
 #include "json.hpp"
-#include "Candle.h"
 
 using json = nlohmann::json;
 
@@ -22,7 +21,7 @@ std::string trim(const std::string& str) {
     return std::string(start, end + 1);
 }
 
-// Read candles from CSV file
+// Read candles from CSV file with optional volume
 std::vector<Candle> DataReader::readCSV() {
     std::vector<Candle> candles;
     std::ifstream file(filepath);
@@ -46,7 +45,7 @@ std::vector<Candle> DataReader::readCSV() {
 
     for (const std::string& rawLine : lines) {
         std::stringstream ss(rawLine);
-        std::string date, openStr, highStr, lowStr, closeStr, changeStr, percentChangeStr;
+        std::string date, openStr, highStr, lowStr, closeStr, volumeStr, changeStr, percentChangeStr;
 
         if (rawLine.find("Date") != std::string::npos) continue;
 
@@ -55,22 +54,32 @@ std::vector<Candle> DataReader::readCSV() {
         std::getline(ss, highStr, ',');
         std::getline(ss, lowStr, ',');
         std::getline(ss, closeStr, ',');
+
+        // Try to get volume, change%, etc.
+        // We don't know if volume is provided, so check
+        std::getline(ss, volumeStr, ',');  // might be volume or might be change
         std::getline(ss, changeStr, ',');
         std::getline(ss, percentChangeStr);
 
-        if (openStr.empty() || highStr.empty() || lowStr.empty() || closeStr.empty() || percentChangeStr.empty()) {
-            std::cerr << "Skipping line due to missing fields: " << rawLine << std::endl;
-            continue;
-        }
-
         Candle candle;
         candle.date = trim(date);
+
         try {
             candle.open = std::stod(trim(openStr));
             candle.high = std::stod(trim(highStr));
             candle.low = std::stod(trim(lowStr));
             candle.close = std::stod(trim(closeStr));
-            candle.changePercent = std::stod(trim(percentChangeStr));
+
+            // If volumeStr can be converted to double and changeStr looks like a number,
+            // treat volumeStr as volume. Otherwise treat volume as 0 and shift fields accordingly.
+            try {
+                candle.volume = std::stod(trim(volumeStr));
+                candle.changePercent = std::stod(trim(percentChangeStr));
+            } catch (...) {
+                // volume not provided, shift fields
+                candle.volume = 0;
+                candle.changePercent = std::stod(trim(changeStr));
+            }
         } catch (const std::exception& e) {
             std::cerr << "Conversion error on line: " << rawLine << "\nReason: " << e.what() << std::endl;
             continue;
@@ -89,7 +98,7 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
     return size * nmemb;
 }
 
-// Read candles from Binance API
+// Read candles from Binance API with optional volume
 std::vector<Candle> DataReader::readAPI() {
     CURL* curl;
     CURLcode res;
@@ -144,6 +153,13 @@ std::vector<Candle> DataReader::readAPI() {
             candle.high = std::stod(entry[2].get<std::string>());
             candle.low = std::stod(entry[3].get<std::string>());
             candle.close = std::stod(entry[4].get<std::string>());
+
+            // Optional volume
+            if (entry.size() > 5) {
+                candle.volume = std::stod(entry[5].get<std::string>());
+            } else {
+                candle.volume = 0;
+            }
 
             candle.changePercent = ((candle.close - candle.open) / candle.open) * 100.0;
 

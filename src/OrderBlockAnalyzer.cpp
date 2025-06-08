@@ -6,9 +6,10 @@
 #include <algorithm>
 
 OrderBlockAnalyzer::OrderBlockAnalyzer(const Config &config)
-    : reader(config.csv_path, config.data_source, config.api_endpoint, config.api_key)
+    : reader(config.csv_path, config.data_source, config.api_endpoint, config.api_key),
+      lastOrderBlockDate(""),
+      lastCHoCHDate("")
 {
-    lastOrderBlockDate = "";
 }
 
 void OrderBlockAnalyzer::analyze()
@@ -21,29 +22,34 @@ void OrderBlockAnalyzer::analyze()
         return;
     }
 
-    const auto &mostRecentCandle = candles.back();
-    std::string currentDate = mostRecentCandle.date;
+    // Log latest candle with volume delta instead of structure update
+    const Candle &latestCandle = candles.back();
+    const Candle *prevCandle = (candles.size() > 1) ? &candles[candles.size() - 2] : nullptr;
 
+    spdlog::info(" Latest Candle:");
+    if (prevCandle)
+    {
+        double deltaVol = latestCandle.volume - prevCandle->volume;
+        spdlog::info(" Date: {}, O: {:.2f}, H: {:.2f}, L: {:.2f}, C: {:.2f}, Vol: {}, ΔVol: {}",
+                     latestCandle.date, latestCandle.open, latestCandle.high, latestCandle.low, latestCandle.close,
+                     latestCandle.volume, deltaVol);
+    }
+    else
+    {
+        spdlog::info(" Date: {}, O: {:.2f}, H: {:.2f}, L: {:.2f}, C: {:.2f}, Vol: {}",
+                     latestCandle.date, latestCandle.open, latestCandle.high, latestCandle.low, latestCandle.close,
+                     latestCandle.volume);
+    }
+
+    // Detect swing points, BOS, CHoCH, and trendline breaks as before
     auto swingPoints = detectSwingPoints(candles);
     auto bosPoints = detectBOS(candles, swingPoints);
     auto chochPoints = detectCHoCH(candles, swingPoints);
     auto trendBreaks = detectTrendlineBreak(candles, swingPoints);
 
-    spdlog::info(" Structure Update:");
-    if (!bosPoints.empty() && bosPoints.back().date > lastOrderBlockDate)
-    {
-        spdlog::info(" ├─ BOS     → {} @ {:.2f}", bosPoints.back().date, bosPoints.back().price);
-    }
-    if (!chochPoints.empty() && chochPoints.back().date > lastOrderBlockDate)
-    {
-        spdlog::info(" ├─ CHoCH   → {} @ {:.2f}", chochPoints.back().date, chochPoints.back().price);
-    }
-    if (!trendBreaks.empty() && trendBreaks.back().date > lastOrderBlockDate)
-    {
-        spdlog::info(" └─ Trendline Break → {} @ {:.2f}", trendBreaks.back().date, trendBreaks.back().price);
-    }
+    // Remove structure update logging from here, as you requested
 
-    if (lastOrderBlockDate == currentDate)
+    if (lastOrderBlockDate == latestCandle.date)
     {
         spdlog::info("No new order block detected for today.");
         return;
@@ -96,8 +102,9 @@ void OrderBlockAnalyzer::analyze()
         }
 
         LoggingUtils::logOrderBlockInfo(obBlock, ob, obType, latestDate, foundEntry, entryPrice, candles);
-        
-        double atr = TradingUtils::calculateATR(candles);
+
+        // Pass ATR period, e.g., 14
+        double atr = TradingUtils::calculateATR(candles, 14);
         if (atr > 0)
         {
             TradingUtils::logRiskManagement(entryPrice, ob, isBuy, atr);
@@ -107,6 +114,4 @@ void OrderBlockAnalyzer::analyze()
             spdlog::warn(" ATR calculation failed or returned 0.");
         }
     }
-
-    
 }

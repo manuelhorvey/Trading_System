@@ -1,4 +1,5 @@
 #include "TradingUtils.h"
+#include <spdlog/spdlog.h>
 #include <iostream>
 #include <iomanip>
 #include <cmath>
@@ -6,6 +7,39 @@
 
 namespace TradingUtils
 {
+    std::string getTrendDirection(const std::vector<StructurePoint> &structurePoints)
+    {
+        std::vector<StructurePoint> swingHighs, swingLows;
+
+        // Separate swing highs and swing lows
+        for (const auto &sp : structurePoints)
+        {
+            if (sp.type == StructureType::SwingHigh)
+                swingHighs.push_back(sp);
+            else if (sp.type == StructureType::SwingLow)
+                swingLows.push_back(sp);
+        }
+
+        // Need at least two swing highs and two swing lows to determine trend
+        if (swingHighs.size() < 2 || swingLows.size() < 2)
+            return "undefined";
+
+        // Get the last two highs and lows
+        const auto &lastHigh = swingHighs[swingHighs.size() - 1];
+        const auto &prevHigh = swingHighs[swingHighs.size() - 2];
+        const auto &lastLow = swingLows[swingLows.size() - 1];
+        const auto &prevLow = swingLows[swingLows.size() - 2];
+
+        // Compare highs and lows to classify trend direction
+        if (lastHigh.price > prevHigh.price && lastLow.price > prevLow.price)
+            return "uptrend";
+        else if (lastHigh.price < prevHigh.price && lastLow.price < prevLow.price)
+            return "downtrend";
+        else
+            return "sideways";
+    }
+
+    // New overload: trend from Candles
     std::string getTrendDirection(const std::vector<Candle> &candles)
     {
         if (candles.size() < 2)
@@ -81,8 +115,34 @@ namespace TradingUtils
         return ob;
     }
 
-    void logCandle(const Candle &c)
+    void logCandleWithDelta(const Candle &curr, const Candle *prev)
     {
-        std::cout << "Candle[O:" << c.open << ", H:" << c.high << ", L:" << c.low << ", C:" << c.close << ", Vol:" << c.volume << "]" << std::endl;
+        if (prev)
+        {
+            double delta = curr.volume - prev->volume;
+            spdlog::info("Candle[Date:{}, O:{}, H:{}, L:{}, C:{}, Vol:{}, ΔVol:{}]",
+                         curr.date, curr.open, curr.high, curr.low, curr.close,
+                         curr.volume, delta);
+        }
+        else
+        {
+            spdlog::info("Candle[Date:{}, O:{}, H:{}, L:{}, C:{}, Vol:{}]",
+                         curr.date, curr.open, curr.high, curr.low, curr.close, curr.volume);
+        }
     }
+
+    void logLastNCandles(const std::vector<Candle> &candles, size_t n)
+    {
+        if (candles.empty())
+            return;
+
+        size_t start = candles.size() > n ? candles.size() - n : 0;
+
+        for (size_t i = start; i < candles.size(); ++i)
+        {
+            const Candle *prev = (i > 0) ? &candles[i - 1] : nullptr;
+            logCandleWithDelta(candles[i], prev);
+        }
+    }
+
 }

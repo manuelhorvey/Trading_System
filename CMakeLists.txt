@@ -20,11 +20,12 @@ add_executable(TradingSystem
     src/DataReader.cpp
     src/OrderBlock.cpp
     src/MarketStructure.cpp
-    src/Backtest.cpp
+    
     src/Strategy.cpp
     src/Utils.cpp
     src/Order.cpp
-    # Remove these lines until files are created
+    
+
     src/Config.cpp
     src/OrderBlockAnalyzer.cpp
     src/TradingUtils.cpp

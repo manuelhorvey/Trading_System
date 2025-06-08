@@ -3,5 +3,5 @@
     "csv_path": "../data/XAUUSD_historical_data.csv",
     "api_endpoint": "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=4h&limit=100",
     "api_key": "zsGKqw8YS9rpbSdLi49ZgrP9hzvL7mVoByBPOFUU893wHsCcqaZXKSDW6ybYWT5E",
-    "api_secrete":"GfaAT8n0JjkoEfFhrwyFGG0m5Q8B2NAsWO8oFDtgl3SMJmGappFgUzkUhDbyjmNV"
+    "api_secrete": "GfaAT8n0JjkoEfFhrwyFGG0m5Q8B2NAsWO8oFDtgl3SMJmGappFgUzkUhDbyjmNV"
 }

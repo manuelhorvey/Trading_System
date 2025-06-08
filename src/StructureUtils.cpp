@@ -12,15 +12,23 @@ std::vector<StructureEvent> StructureUtils::gatherStructureEvents(
     for (const auto &bos : bosPoints)
     {
         if (bos.type != StructureType::BOS) continue;
-        bool isBullish = bos.index > 0 && bos.index < candles.size() && bos.price > candles[bos.index - 1].close;
-        structureEvents.emplace_back(isBullish ? StructureEventType::BOS_Bullish : StructureEventType::BOS_Bearish, bos.date, bos.price);
+        if (bos.index < candles.size())
+        {
+            const Candle &candle = candles[bos.index];
+            bool isBullish = candle.close > candle.open;
+            structureEvents.emplace_back(isBullish ? StructureEventType::BOS_Bullish : StructureEventType::BOS_Bearish, bos.date, bos.price);
+        }
     }
 
     for (const auto &choch : chochPoints)
     {
         if (choch.type != StructureType::CHoCH) continue;
-        bool isBullish = choch.index > 0 && choch.index < candles.size() && choch.price > candles[choch.index - 1].close;
-        structureEvents.emplace_back(isBullish ? StructureEventType::CHoCH_Bullish : StructureEventType::CHoCH_Bearish, choch.date, choch.price);
+        if (choch.index < candles.size())
+        {
+            const Candle &candle = candles[choch.index];
+            bool isBullish = candle.close > candle.open;
+            structureEvents.emplace_back(isBullish ? StructureEventType::CHoCH_Bullish : StructureEventType::CHoCH_Bearish, choch.date, choch.price);
+        }
     }
 
     for (const auto &tb : trendBreaks)
