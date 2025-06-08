@@ -1,5 +1,6 @@
 # Ignore build folder
 /build/
+/config/
 
 # Ignore compiled files
 *.o
